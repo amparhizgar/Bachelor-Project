@@ -33,7 +33,7 @@ __global__ static void redKernel(double* u, double* un, int n, double lambda) {
 	}
 }
 
-__global__ static void blackKernel(double* un, int n, double lambda) {
+__global__ static void blackKernel(double* u, double* un, int n, double lambda) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -42,7 +42,7 @@ __global__ static void blackKernel(double* un, int n, double lambda) {
 
 		if ((i + j) % 2 != 0) {
 			if (i > 0 && i < n - 1 && j > 0 && j < n - 1) {
-				un[index] = (1 - lambda) * un[index] + lambda * 0.25 * (un[(i - 1) * n + j] + un[(i + 1) * n + j]
+				un[index] = (1 - lambda) * u[index] + lambda * 0.25 * (un[(i - 1) * n + j] + un[(i + 1) * n + j]
 					+ un[i * n + (j - 1)] + un[i * n + (j + 1)]);
 			}
 		}
@@ -71,7 +71,7 @@ extern void sor()
 	while (error > tol) {
 		iterations++;
 		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u_device.data()), thrust::raw_pointer_cast(un_device.data()), n, lambda);
-		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(un_device.data()), n, lambda);
+		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u_device.data()), thrust::raw_pointer_cast(un_device.data()), n, lambda);
 		
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u_device.begin(), un_device.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u_device.end(), un_device.end()));

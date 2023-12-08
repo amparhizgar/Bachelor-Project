@@ -1,11 +1,12 @@
 ﻿extern void jacubi();
 extern void jacubi_redblack();
 extern void sor();
+extern void sor_separated();
 
 
 int main() {
 
-	switch (0)
+	switch (3)
 	{
 	case 0:
 		jacubi();
@@ -15,6 +16,9 @@ int main() {
 		break;
 	case 2:
 		sor();
+		break;
+	case 3:
+		sor_separated();
 		break;
 	default:
 		break;
