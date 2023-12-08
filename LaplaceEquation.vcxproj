@@ -79,6 +79,13 @@
   <ItemGroup>
     <CudaCompile Include="Main.cpp" />
     <CudaCompile Include="redblack.cu" />
+    <CudaCompile Include="sor.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="util.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="util.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

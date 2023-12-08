@@ -1,4 +1,4 @@
-﻿#include <stdio.h>
+#include <stdio.h>
 #include <iostream>
 #include <cmath>
 #include "cuda_runtime.h"
@@ -14,11 +14,10 @@
 #include "util.h"
 
 
-
 #define BLOCK_SIZE 16
 
 
-__global__ void redKernel(double* u, double* un, int n, double tol) {
+__global__ static void redKernel(double* u, double* un, int n, double tol) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -33,7 +32,8 @@ __global__ void redKernel(double* u, double* un, int n, double tol) {
 		}
 	}
 }
-__global__ void blackKernel(double* un, int n, double tol) {
+
+__global__ static void blackKernel(double* un, int n, double tol) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -50,16 +50,14 @@ __global__ void blackKernel(double* un, int n, double tol) {
 }
 
 
-
-
-extern void redblack()
+extern void sor()
 {
 	const int n = 13;
 	int size = n * n;
 	thrust::device_vector<double> u_device(size);
 	thrust::fill(u_device.begin(), u_device.end(), 0.0);
 	thrust::fill(u_device.begin(), u_device.begin() + n, 2.0);
-	thrust::fill(u_device.begin() + n * (n-1), u_device.end(), 1.0);
+	thrust::fill(u_device.begin() + n * (n - 1), u_device.end(), 1.0);
 	thrust::device_vector<double> un_device(u_device);
 	double tol = 1e-5;
 
@@ -69,8 +67,8 @@ extern void redblack()
 	double error = tol + 1.0;
 	while (error > tol) {
 
-		redKernel<<<gridDim, blockDim>>>(thrust::raw_pointer_cast(u_device.data()), thrust::raw_pointer_cast(un_device.data()), n, tol);
-		blackKernel<<<gridDim, blockDim>>>(thrust::raw_pointer_cast(u_device.data()), n, tol);
+		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u_device.data()), thrust::raw_pointer_cast(un_device.data()), n, tol);
+		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u_device.data()), n, tol);
 
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u_device.begin(), un_device.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u_device.end(), un_device.end()));
