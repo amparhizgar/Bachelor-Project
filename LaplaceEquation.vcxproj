@@ -77,15 +77,20 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="jacubi.cu" />
+    <CudaCompile Include="jacubi_redblack.cu" />
     <CudaCompile Include="Main.cpp" />
-    <CudaCompile Include="redblack.cu" />
     <CudaCompile Include="sor.cu" />
+    <CudaCompile Include="sor_separated.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="util.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

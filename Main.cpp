@@ -1,13 +1,17 @@
-﻿extern void redblack();
+﻿extern void jacubi();
+extern void jacubi_redblack();
 extern void sor();
 
 
 int main() {
 
-	switch (2)
+	switch (0)
 	{
+	case 0:
+		jacubi();
+		break;
 	case 1:
-		redblack();
+		jacubi_redblack();
 		break;
 	case 2:
 		sor();
