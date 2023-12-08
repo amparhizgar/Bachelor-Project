@@ -84,6 +84,7 @@
     <CudaCompile Include="sor_separated.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="const.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>

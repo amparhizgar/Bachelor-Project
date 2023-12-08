@@ -101,7 +101,7 @@ extern void sor_separated()
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 gridDim((m - 1) / blockDim.x + 1, (halfn - 1) / blockDim.y + 1);
 
-	double lambda = 1.3;
+	double lambda = 1.7;
 
 
 	double error = tol + 1.0;
