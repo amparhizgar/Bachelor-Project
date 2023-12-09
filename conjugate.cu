@@ -23,11 +23,9 @@ __global__ static void laplacianKernel(double* u, double* unew, int n, int m) {
 
 	if (i < m && j < n) {
 		int index = i * n + j;
-		if ((i + j) % 2 == 0) {
-			if (i > 0 && i < n - 1 && j > 0 && j < n - 1) {
-				unew[index] = (u[(i - 1) * n + j] + u[(i + 1) * n + j]
-					+ u[i * n + (j - 1)] + u[i * n + (j + 1)]) - 4 * u[index];
-			}
+		if (i > 0 && i < n - 1 && j > 0 && j < n - 1) {
+			unew[index] = (u[(i - 1) * n + j] + u[(i + 1) * n + j]
+				+ u[i * n + (j - 1)] + u[i * n + (j + 1)]) - 4 * u[index];
 		}
 	}
 }
@@ -39,10 +37,11 @@ void print2DArray(thrust::device_vector<double>& v, int n, int m) {
 		}
 		std::cout << std::endl;
 	}
+	printf("-----------\n");
 }
 
 double dot(thrust::device_vector<double>& v, thrust::device_vector<double>& u) {
-	return thrust::inner_product(v.begin(), v.end(), u.begin(), 0);
+	return thrust::inner_product(v.begin(), v.end(), u.begin(), 0.0, thrust::plus<double>(), thrust::multiplies<double>());
 }
 
 double dot(thrust::device_vector<double>& v) {
@@ -93,13 +92,13 @@ double getError(thrust::device_vector<double>& vec) {
 
 extern void conjugate_gradient()
 {
-	const int n = 10;
+	const int n = 5;
 	const int m = n;
 	int size = n * m;
 	thrust::device_vector<double> u(size, 0);
 	thrust::fill(u.begin(), u.begin() + n, 2.0);
 	thrust::fill(u.begin() + n * (n - 1), u.end(), 1.0);
-	thrust::device_vector<double> un(u);
+	thrust::device_vector<double> temp(size, 0);
 	double tol = 1e-5;
 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
@@ -112,9 +111,9 @@ extern void conjugate_gradient()
 	thrust::device_vector<double> r(size);
 	thrust::device_vector<double> b(size, 0);
 	// u = A * x
-	laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m);
-	// r = b - u;
-	thrust::transform(b.begin(), b.end(), un.begin(), r.begin(), thrust::minus<int>());
+	laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(temp.data()), n, m);
+	// r = b - temp;
+	thrust::transform(b.begin(), b.end(), temp.begin(), r.begin(), thrust::minus<int>());
 	// p = r;
 	thrust::copy(r.begin(), r.end(), p.begin());
 	// rDot = r'*r;
@@ -138,10 +137,12 @@ extern void conjugate_gradient()
 
 		//	newRDot = r'*r;
 		rDotNew = dot(r);
+
 		//	b = newRDot / rDot;
 		double beta = rDotNew / rDot;
 		//p = r + beta * p;
 		sumWithScalarProductRight(r, beta, p);
+
 		//rDot = newRDot;
 		rDot = rDotNew;
 	}
