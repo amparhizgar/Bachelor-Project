@@ -21,7 +21,6 @@ __global__ static void laplacianKernel(double* u, double* unew, int n, int m) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-	int index = i * n + j;
 	if (i < m && j < n) {
 		int index = i * n + j;
 		if ((i + j) % 2 == 0) {
@@ -33,11 +32,20 @@ __global__ static void laplacianKernel(double* u, double* unew, int n, int m) {
 	}
 }
 
-double dot(thrust::device_vector<double> &v, thrust::device_vector<double> &u) {
+void print2DArray(thrust::device_vector<double>& v, int n, int m) {
+	for (int j = 0; j < m; ++j) {
+		for (int i = 0; i < n; ++i) {
+			std::cout << std::fixed << v[j * n + i] << "   ";
+		}
+		std::cout << std::endl;
+	}
+}
+
+double dot(thrust::device_vector<double>& v, thrust::device_vector<double>& u) {
 	return thrust::inner_product(v.begin(), v.end(), u.begin(), 0);
 }
 
-double dot(thrust::device_vector<double> v) {
+double dot(thrust::device_vector<double>& v) {
 	return  dot(v, v);
 }
 struct Multiply {
@@ -50,7 +58,7 @@ struct Multiply {
 		return x * factor;
 	}
 };
-void multiplyVector(double d, thrust::device_vector<double> vec) {
+void multiplyVector(double d, thrust::device_vector<double>& vec) {
 	thrust::transform(vec.begin(), vec.end(), vec.begin(), Multiply(d));
 }
 struct SumWithScalarProduct {
@@ -64,22 +72,22 @@ struct SumWithScalarProduct {
 	}
 };
 
-void sumWithScalarProduct(thrust::device_vector<double> v, double d, thrust::device_vector<double> u) {
+void sumWithScalarProduct(thrust::device_vector<double>& v, double d, thrust::device_vector<double>& u) {
 	thrust::transform(v.begin(), v.end(), u.begin(), v.begin(), SumWithScalarProduct(d));
 }
-void sumWithScalarProductRight(thrust::device_vector<double> v, double d, thrust::device_vector<double> u) {
+void sumWithScalarProductRight(thrust::device_vector<double>& v, double d, thrust::device_vector<double>& u) {
 	thrust::transform(v.begin(), v.end(), u.begin(), u.begin(), SumWithScalarProduct(d));
 }
 
 
-double getError(thrust::device_vector<double> v, thrust::device_vector<double> u) {
+double getError(thrust::device_vector<double>& v, thrust::device_vector<double>& u) {
 	auto begin = thrust::make_zip_iterator(thrust::make_tuple(v.begin(), u.begin()));
 	auto end = thrust::make_zip_iterator(thrust::make_tuple(v.end(), u.end()));
 	return thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
 }
 
 
-double getError(thrust::device_vector<double> vec) {
+double getError(thrust::device_vector<double>& vec) {
 	return thrust::transform_reduce(vec.begin(), vec.end(), AbsoluteValue(), 0.0, thrust::maximum<double>());
 }
 
@@ -128,7 +136,7 @@ extern void conjugate_gradient()
 		sumWithScalarProduct(r, -alpha, Ap);
 		if (getError(r) < tol)
 			break;
-		
+
 		//	newRDot = r'*r;
 		rDotNew = dot(r);
 		//	b = newRDot / rDot;

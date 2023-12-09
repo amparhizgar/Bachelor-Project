@@ -1,4 +1,5 @@
-#include "cuda_runtime.h"
+#include <stdio.h>
+#include <iostream>
 
 #include "util.h"
 
