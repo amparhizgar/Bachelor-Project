@@ -12,7 +12,7 @@ void print2DArray(const double* array, int n, int m) {
 	}
 }
 
+
 void print2DArray(const double* array, int n) {
 	print2DArray(array, n, n);
 }
-

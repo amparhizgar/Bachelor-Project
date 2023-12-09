@@ -65,7 +65,6 @@ extern void sor_separated()
 	int size = n * m;
 
 	const int halfn = (n - 1) / 2 + 1;
-	const int is_odd = n & 1;
 
 
 	thrust::host_vector<double> u(size);
