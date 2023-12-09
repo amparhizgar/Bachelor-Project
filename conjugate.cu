@@ -93,7 +93,7 @@ double getError(thrust::device_vector<double>& vec) {
 
 extern void conjugate_gradient()
 {
-	const int n = 5;
+	const int n = 10;
 	const int m = n;
 	int size = n * m;
 	thrust::device_vector<double> u(size, 0);
@@ -113,9 +113,8 @@ extern void conjugate_gradient()
 	thrust::device_vector<double> b(size, 0);
 	// u = A * x
 	laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m);
-	swap(u, un);
 	// r = b - u;
-	thrust::transform(b.begin(), b.end(), u.begin(), r.begin(), thrust::minus<int>());
+	thrust::transform(b.begin(), b.end(), un.begin(), r.begin(), thrust::minus<int>());
 	// p = r;
 	thrust::copy(r.begin(), r.end(), p.begin());
 	// rDot = r'*r;
