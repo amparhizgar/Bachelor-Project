@@ -10,7 +10,7 @@
 #include <iomanip>
 
 extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
-extern void jacubi_redblack();
+extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
 extern void sor_separated();
 extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
@@ -34,7 +34,7 @@ int main() {
 		algorithm = &jacubi;
 		break;
 	case 1:
-		jacubi_redblack();
+		algorithm = &jacubi_redblack;
 		break;
 	case 2:
 		algorithm = &sor;
