@@ -28,4 +28,19 @@ struct AbsoluteValue {
 	}
 };
 
+struct ConvergenceCriteria {
+	const double error;
+	const long iterations;
+
+	ConvergenceCriteria(double _error, long _iterations) : error(_error), iterations(_iterations) {}
+
+	bool hasConverged(double currentError, long currentIteration) {
+		if (error > 0 && iterations > 0)
+			return currentError < error && currentIteration >= iterations;
+		else if (error > 0)
+			return currentError < error;
+		else
+			return  currentIteration >= iterations;
+	}
+};
 

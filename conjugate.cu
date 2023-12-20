@@ -87,7 +87,7 @@ double getError(thrust::device_vector<double>& vec) {
 	return thrust::transform_reduce(vec.begin(), vec.end(), AbsoluteValue(), 0.0, thrust::maximum<double>());
 }
 
-extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m)
+extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
 {
 	int size = n * m;
 	double tol = 1e-5;
@@ -124,9 +124,8 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 		sumWithScalarProduct(u, alpha, p);
 		//r = r - alpha * Ap;
 		sumWithScalarProduct(r, -alpha, Ap);
-		if (getError(r) < tol)
+		if (cc.hasConverged(getError(r), iterations))
 			break;
-
 		//	newRDot = r'*r;
 		rDotNew = dot(r);
 
