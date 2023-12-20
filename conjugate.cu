@@ -87,15 +87,9 @@ double getError(thrust::device_vector<double>& vec) {
 	return thrust::transform_reduce(vec.begin(), vec.end(), AbsoluteValue(), 0.0, thrust::maximum<double>());
 }
 
-extern void conjugate_gradient()
+extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m)
 {
-	const int n = 5;
-	const int m = n;
 	int size = n * m;
-	thrust::device_vector<double> u(size, 0);
-	thrust::fill(u.begin(), u.begin() + n, 2.0);
-	thrust::fill(u.begin() + n * (n - 1), u.end(), 1.0);
-	thrust::device_vector<double> temp(size, 0);
 	double tol = 1e-5;
 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
@@ -107,6 +101,7 @@ extern void conjugate_gradient()
 	thrust::device_vector<double> p(size);
 	thrust::device_vector<double> r(size);
 	thrust::device_vector<double> b(size, 0);
+	thrust::device_vector<double> temp(size, 0);
 	// temp = A * x
 	laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(temp.data()), n, m);
 	// r = b - temp;
@@ -143,11 +138,6 @@ extern void conjugate_gradient()
 		//rDot = newRDot;
 		rDot = rDotNew;
 	}
-
-	printf("Finished\n");
-	thrust::host_vector<double> result(u);
-	print2DArray(thrust::raw_pointer_cast(result.data()), n);
-	printf("total iterations: %d\n", iterations);
-
+	return &u;
 }
 
