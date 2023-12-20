@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cmath>
 
+#define BLOCK_SIZE 16
 
 void print2DArray(const double* array, int n, int m);
 void print2DArray(const double* array, int n);

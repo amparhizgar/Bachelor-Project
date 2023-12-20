@@ -14,10 +14,6 @@
 #include "util.h"
 
 
-
-#define BLOCK_SIZE 16
-
-
 __global__ void jacubiKernel(double* u, double* un, int n) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;

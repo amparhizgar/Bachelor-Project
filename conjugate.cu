@@ -14,9 +14,6 @@
 #include "util.h"
 
 
-#define BLOCK_SIZE 16
-
-
 __global__ static void laplacianKernel(double* u, double* unew, int n, int m) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -110,7 +107,7 @@ extern void conjugate_gradient()
 	thrust::device_vector<double> p(size);
 	thrust::device_vector<double> r(size);
 	thrust::device_vector<double> b(size, 0);
-	// u = A * x
+	// temp = A * x
 	laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(temp.data()), n, m);
 	// r = b - temp;
 	thrust::transform(b.begin(), b.end(), temp.begin(), r.begin(), thrust::minus<int>());

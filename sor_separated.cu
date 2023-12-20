@@ -16,8 +16,6 @@
 #include "util.h"
 
 
-#define BLOCK_SIZE 16
-
 
 __global__ static void redKernel(double* rnew, double* r, double* b, int n, int m, double lambda) {
 	const int halfn = (n - 1) / 2 + 1;
