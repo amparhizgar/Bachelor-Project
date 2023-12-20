@@ -36,7 +36,7 @@ struct ConvergenceCriteria {
 
 	bool hasConverged(double currentError, long currentIteration) {
 		if (error > 0 && iterations > 0)
-			return currentError < error && currentIteration >= iterations;
+			return currentError < error || currentIteration >= iterations;
 		else if (error > 0)
 			return currentError < error;
 		else

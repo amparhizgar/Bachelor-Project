@@ -9,7 +9,7 @@
 #include <chrono>
 #include <iomanip>
 
-extern void jacubi();
+extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
 extern void jacubi_redblack();
 extern void sor();
 extern void sor_separated();
@@ -28,10 +28,10 @@ int main() {
 
 	ConvergenceCriteria cc(0.0, 1000);
 
-	switch (4)
+	switch (0)
 	{
 	case 0:
-		jacubi();
+		algorithm = &jacubi;
 		break;
 	case 1:
 		jacubi_redblack();
@@ -57,7 +57,6 @@ int main() {
 	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 	
 	std::cout.imbue(std::locale(""));
-	// Print the duration with commas as thousands separators
 	std::cout << "Time taken by the algorithm: "
 		<< std::fixed << std::setprecision(3) << duration.count() / 1000.0 << " milliseconds"
 		<< std::endl;

@@ -27,38 +27,27 @@ __global__ void jacubiKernel(double* u, double* un, int n) {
 }
 
 
-extern void jacubi()
+extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
 {
-	const int n = 13;
-	int size = n * n;
-	thrust::device_vector<double> u_device(size);
-	thrust::fill(u_device.begin(), u_device.end(), 0.0);
-	thrust::fill(u_device.begin(), u_device.begin() + n, 2.0);
-	thrust::fill(u_device.begin() + n * (n - 1), u_device.end(), 1.0);
-	thrust::device_vector<double> un_device(u_device);
-	double tol = 1e-5;
+	int size = n * m;
+	thrust::device_vector<double> un(u);
 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 gridDim((n - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
 
-	double error = tol + 1.0;
 	int iterations = 0;
-	while (error > tol) {
+	while (true) {
 		iterations++;
 
-		jacubiKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u_device.data()), thrust::raw_pointer_cast(un_device.data()), n);
+		jacubiKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n);
 
-		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u_device.begin(), un_device.begin()));
-		auto end = thrust::make_zip_iterator(thrust::make_tuple(u_device.end(), un_device.end()));
-		error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
-		printf("error is %f\n", error);
-		swap(u_device, un_device);
+		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));
+		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), un.end()));
+		double error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
+		if (cc.hasConverged(error, iterations))
+			break;
+		swap(u, un);
 	}
-
-	printf("Finished\n");
-	thrust::host_vector<double> result(u_device);
-	print2DArray(thrust::raw_pointer_cast(result.data()), n);
-	printf("total iterations: %d\n", iterations);
-
+	return &u;
 }
 

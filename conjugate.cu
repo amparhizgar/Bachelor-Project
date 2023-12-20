@@ -95,7 +95,6 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 gridDim((n - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
 
-	double error = tol + 1.0;
 	int iterations = 0;
 	thrust::device_vector<double> Ap(size);
 	thrust::device_vector<double> p(size);
@@ -112,7 +111,7 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 	double rDot = dot(r);
 	double rDotNew;
 
-	while (error > tol) {
+	while (true) {
 		iterations++;
 
 		// Ap = A*p;
