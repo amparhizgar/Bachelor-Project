@@ -15,34 +15,30 @@
 
 
 
-__global__ static void redKernel(double* u, double* un, int n, double lambda) {
+__global__ static void redKernel(double* u, double* un, int n, int m, double lambda) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-	if (i < n && j < n) {
-		int index = i * n + j;
+	int index = i * n + j;
 
-		if ((i + j) % 2 == 0) {
-			if (i > 0 && i < n - 1 && j > 0 && j < n - 1) {
-				un[index] = (1-lambda) * u[index] + lambda * 0.25 * (u[(i - 1) * n + j] + u[(i + 1) * n + j]
-					+ u[i * n + (j - 1)] + u[i * n + (j + 1)]);
-			}
+	if ((i + j) % 2 == 0) {
+		if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
+			un[index] = (1 - lambda) * u[index] + lambda * 0.25 * (u[(i - 1) * n + j] + u[(i + 1) * n + j]
+				+ u[i * n + (j - 1)] + u[i * n + (j + 1)]);
 		}
 	}
 }
 
-__global__ static void blackKernel(double* u, double* un, int n, double lambda) {
+__global__ static void blackKernel(double* u, double* un, int n, int m, double lambda) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-	if (i < n && j < n) {
-		int index = i * n + j;
+	int index = i * n + j;
 
-		if ((i + j) % 2 != 0) {
-			if (i > 0 && i < n - 1 && j > 0 && j < n - 1) {
-				un[index] = (1 - lambda) * u[index] + lambda * 0.25 * (un[(i - 1) * n + j] + un[(i + 1) * n + j]
-					+ un[i * n + (j - 1)] + un[i * n + (j + 1)]);
-			}
+	if ((i + j) % 2 != 0) {
+		if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
+			un[index] = (1 - lambda) * u[index] + lambda * 0.25 * (un[(i - 1) * n + j] + un[(i + 1) * n + j]
+				+ un[i * n + (j - 1)] + un[i * n + (j + 1)]);
 		}
 	}
 }
@@ -61,12 +57,12 @@ extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int 
 	int iterations = 0;
 	while (true) {
 		iterations++;
-		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, lambda);
-		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, lambda);
-		
+		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, lambda);
+		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, lambda);
+
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), un.end()));
-		
+
 		error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
 		swap(u, un);
 		if (cc.hasConverged(error, iterations))
