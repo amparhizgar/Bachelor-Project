@@ -62,7 +62,6 @@ extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int 
 
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), un.end()));
-
 		error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
 		swap(u, un);
 		if (cc.hasConverged(error, iterations))

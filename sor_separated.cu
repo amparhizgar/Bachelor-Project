@@ -5,6 +5,7 @@
 #include "device_launch_parameters.h"
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
+#include <thrust/iterator/iterator_facade.h>
 
 #include <thrust/copy.h>
 #include <thrust/fill.h>
@@ -23,12 +24,12 @@ __global__ static void redKernel(double* rnew, double* r, double* b, int n, int 
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 	int realj = j * 2 + (i & 1);
-	if (i > 0 && i < m - 1 && j + (i & 1) > 0 && realj< n - 1 && (!is_odd || realj < n - 2 || (i & 1))) {
+	if (i > 0 && i < m - 1 && j + (i & 1) > 0 && realj < n - 1 && (!is_odd || realj < n - 2 || (i & 1))) {
 		int left = i * halfn + j - 1 + (i & 1);
 		int right = i * halfn + j + (i & 1);
 		int top = (i - 1) * halfn + j;
 		int bottom = (i + 1) * halfn + j;
-		rnew[i * halfn + j] = (1 - lambda) * r[i * halfn + j] + lambda * 0.25 * (b[left] + b[right] 
+		rnew[i * halfn + j] = (1 - lambda) * r[i * halfn + j] + lambda * 0.25 * (b[left] + b[right]
 			+ b[top] + b[bottom]);
 	}
 }
@@ -39,56 +40,86 @@ __global__ static void blackKernel(double* bnew, double* b, double* r, int n, in
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 	int realj = j * 2 + ((i + 1) & 1);
-	if (i > 0 && i < m - 1 && j + ((i + 1) & 1) > 0 && realj < n-1  && (!is_odd || realj < n - 2 || ((i + 1) & 1))) {
+	if (i > 0 && i < m - 1 && j + ((i + 1) & 1) > 0 && realj < n - 1 && (!is_odd || realj < n - 2 || ((i + 1) & 1))) {
 		int left = i * halfn + j - (i & 1);
 		int right = i * halfn + j + 1 - (i & 1);
 		int top = (i - 1) * halfn + j;
 		int bottom = (i + 1) * halfn + j;
-		bnew[i * halfn + j] = (1 - lambda) * b[i * halfn + j] + lambda * 0.25 * (r[left] + r[right] 
+		bnew[i * halfn + j] = (1 - lambda) * b[i * halfn + j] + lambda * 0.25 * (r[left] + r[right]
 			+ r[top] + r[bottom]);
 	}
 }
 
-double calculate_error(thrust::device_vector<double> olddata, thrust::device_vector<double> newdata) {
-	auto begin = thrust::make_zip_iterator(thrust::make_tuple(olddata.begin(), newdata.begin()));
-	auto end = thrust::make_zip_iterator(thrust::make_tuple(olddata.end(), newdata.end()));
-	return thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
+__global__ static void initRedKernel(double* red, double* u, int n, int m) {
+	const int halfn = (n - 1) / 2 + 1;
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if (2 * j + (i & 1) < n && i < m)
+		red[i * halfn + j] = u[i * n + 2 * j + (i & 1)];
 }
+
+__global__ static void initBlackKernel(double* black, double* u, int n, int m) {
+	const int halfn = (n - 1) / 2 + 1;
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if (2 * j + ((i + 1) & 1) < n && i < m)
+		black[i * halfn + j] = u[i * n + 2 * j + ((i + 1) & 1)];
+}
+
+__global__ static void joinKernel(double* red, double* black, double* u, int n, int m) {
+	const int halfn = (n - 1) / 2 + 1;
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if (i < m && j < n) {
+		if ((i + j & 1) == 0) {
+			u[i * n + j] = red[i * halfn + j / 2];
+		}
+		else {
+			u[i * n + j] = black[i * halfn + j / 2];
+		}
+	}
+}
+
+struct Concatenator {
+	const double* vector1;
+	const double* vector2;
+	size_t size1;
+	size_t size2;
+
+	Concatenator(const double* v1, const double* v2, size_t s1, size_t s2)
+		: vector1(v1), vector2(v2), size1(s1), size2(s2) {}
+
+	__host__ __device__
+		double operator()(int idx) const {
+		if (idx < 0 || idx >= size1 + size2) {
+			printf("Out-of-bounds access at index %d\n", idx);
+			return 0;
+		}
+		return idx < size1 ? vector1[idx] : vector2[idx - size1];
+	}
+};
 
 extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
 {
-	int size = n * m;
-
 	const int halfn = (n - 1) / 2 + 1;
-
-
-	thrust::host_vector<double> h_red(halfn * m);
-	thrust::host_vector<double> h_black(halfn * m);
-
-	for (int i = 0; i < m; i++) {
-		for (int j = 0; j < halfn; j++) {
-			if (2 * j + (i & 1) < n)
-				h_red[i * halfn + j] = u[i * n + 2 * j + (i & 1)];
-		}
-	}
-
-	for (int i = 0; i < m; i++) {
-		for (int j = 0; j < halfn; j++) {
-			if (2 * j + ((i + 1) & 1) < n)
-				h_black[i * halfn + j] = u[i * n + 2 * j + ((i + 1) & 1)];
-		}
-	}
-
-	thrust::device_vector<double> b(h_black);
-	thrust::device_vector<double> bnew(b);
-	thrust::device_vector<double> r(h_red);
-	thrust::device_vector<double> rnew(r);
-
 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 gridDim((m - 1) / blockDim.x + 1, (halfn - 1) / blockDim.y + 1);
 
+	thrust::device_vector<double> r(halfn * m);
+	thrust::device_vector<double> b(halfn * m);
+
+	initRedKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(r.data()), thrust::raw_pointer_cast(u.data()), n, m);
+	initBlackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(u.data()), n, m);
+
+	thrust::device_vector<double> bnew(b);
+	thrust::device_vector<double> rnew(r);
+
+
 	double lambda = 2 / (1 + sqrt(1 - pow(cos(pi / (n - 1)), 2)));
+	cudaStream_t stream1, stream2;
+	cudaStreamCreate(&stream1);
+	cudaStreamCreate(&stream2);
 
 	double error;
 	int iterations = 0;
@@ -97,24 +128,29 @@ extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double
 		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(rnew.data()), thrust::raw_pointer_cast(r.data()), thrust::raw_pointer_cast(b.data()), n, m, lambda);
 		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(bnew.data()), thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(rnew.data()), n, m, lambda);
 
-		error = fmax(calculate_error(r, rnew), calculate_error(b, bnew));
+		/*double b_error = calculate_error(b, bnew, stream1);
+		double r_error = calculate_error(r, rnew, stream2);
+		cudaStreamSynchronize(stream1);
+		cudaStreamSynchronize(stream2);*/
+
+		size_t total_size = r.size() + b.size();
+		thrust::counting_iterator<int> index_iterator(0);
+		thrust::counting_iterator<int> index_iteratorend(total_size);
+		auto olddata = thrust::make_transform_iterator(index_iterator, Concatenator(r.data().get(), b.data().get(), r.size(), b.size()));
+		auto newdata = thrust::make_transform_iterator(index_iterator, Concatenator(rnew.data().get(), bnew.data().get(), rnew.size(), bnew.size()));
+		auto begin = thrust::make_zip_iterator(thrust::make_tuple(olddata, newdata));
+		error = thrust::transform_reduce(begin, begin + total_size, abs_difference(), 0.0, thrust::maximum<double>());
 		swap(r, rnew);
 		swap(b, bnew);
 		if (cc.hasConverged(error, iterations))
 			break;
 	}
 
+	dim3 joinGridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
+	joinKernel << <joinGridDim, blockDim >> > (thrust::raw_pointer_cast(r.data()), thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(u.data()), n, m);
+	cudaStreamDestroy(stream1);
+	cudaStreamDestroy(stream2);
 
-	for (int i = 0; i < m; i++) {
-		for (int j = 0; j < n; j++) {
-			if ((i + j & 1) == 0) {
-				u[i * n + j] = r[i * halfn + j / 2];
-			}
-			else {
-				u[i * n + j] = b[i * halfn + j / 2];
-			}
-		}
-	}
 	return &u;
 }
 
