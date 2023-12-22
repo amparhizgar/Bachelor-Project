@@ -38,8 +38,8 @@ int getAlg() {
 }
 
 int main() {
-	int n = 3;
-	int m = 5;
+	int n = 5000;
+	int m = 5000;
 	int size = n * m;
 
 	while (true) {
@@ -50,7 +50,7 @@ int main() {
 
 		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, ConvergenceCriteria);
 
-		ConvergenceCriteria cc(0.0, 10000);
+		ConvergenceCriteria cc(0.0, 500);
 
 
 		switch (getAlg())
