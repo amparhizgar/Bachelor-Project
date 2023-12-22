@@ -55,21 +55,12 @@ double calculate_error(thrust::device_vector<double> olddata, thrust::device_vec
 	return thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
 }
 
-
-extern void sor_separated()
+extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
 {
-	const int n = 13;
-	const int m = n;
 	int size = n * m;
 
 	const int halfn = (n - 1) / 2 + 1;
 
-
-	thrust::host_vector<double> u(size);
-
-	thrust::fill(u.begin(), u.end(), 0.0);
-	thrust::fill(u.begin(), u.begin() + n, 2.0);
-	thrust::fill(u.begin() + n * (m - 1), u.end(), 1.0);
 
 	thrust::host_vector<double> h_red(halfn * m);
 	thrust::host_vector<double> h_black(halfn * m);
@@ -94,40 +85,36 @@ extern void sor_separated()
 	thrust::device_vector<double> rnew(r);
 
 
-	double tol = 1e-5;
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
 	dim3 gridDim((m - 1) / blockDim.x + 1, (halfn - 1) / blockDim.y + 1);
 
-	double lambda = 1.7;
+	double lambda = 2 / (1 + sqrt(1 - pow(cos(pi / (n - 1)), 2)));
 
-
-	double error = tol + 1.0;
+	double error;
 	int iterations = 0;
-	while (error > tol) {
+	while (true) {
 		iterations++;
 		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(rnew.data()), thrust::raw_pointer_cast(r.data()), thrust::raw_pointer_cast(b.data()), n, m, lambda);
 		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(bnew.data()), thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(rnew.data()), n, m, lambda);
 
 		error = fmax(calculate_error(r, rnew), calculate_error(b, bnew));
-		printf("error is %f\n", error);
 		swap(r, rnew);
 		swap(b, bnew);
+		if (cc.hasConverged(error, iterations))
+			break;
 	}
 
-	thrust::host_vector<double> result_red(r);
-	thrust::host_vector<double> result_black(b);
+
 	for (int i = 0; i < m; i++) {
 		for (int j = 0; j < n; j++) {
 			if ((i + j & 1) == 0) {
-				u[i * n + j] = result_red[i * halfn + j / 2];
+				u[i * n + j] = r[i * halfn + j / 2];
 			}
 			else {
-				u[i * n + j] = result_black[i * halfn + j / 2];
+				u[i * n + j] = b[i * halfn + j / 2];
 			}
 		}
 	}
-	print2DArray(thrust::raw_pointer_cast(u.data()), n, m);
-	printf("Finished SOR with separation. lambda=%f\n", lambda);
-	printf("total iterations: %d\n", iterations);
+	return &u;
 }
 

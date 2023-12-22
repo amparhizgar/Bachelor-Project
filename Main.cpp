@@ -12,7 +12,7 @@
 extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
-extern void sor_separated();
+extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
 
 
@@ -28,7 +28,7 @@ int main() {
 
 	ConvergenceCriteria cc(0.0, 1000);
 
-	switch (0)
+	switch (3)
 	{
 	case 0:
 		algorithm = &jacubi;
@@ -40,7 +40,7 @@ int main() {
 		algorithm = &sor;
 		break;
 	case 3:
-		sor_separated();
+		algorithm = &sor_separated;
 		break;
 	case 4:
 		algorithm = &conjugate_gradient;

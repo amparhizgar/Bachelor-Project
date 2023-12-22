@@ -10,6 +10,8 @@
 
 #define BLOCK_SIZE 16
 
+const double pi = 3.141592653589793;
+
 void print2DArray(const double* array, int n, int m);
 void print2DArray(const double* array, int n);
 
