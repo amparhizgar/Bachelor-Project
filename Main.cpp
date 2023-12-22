@@ -38,19 +38,19 @@ int getAlg() {
 }
 
 int main() {
-	int n = 1000;
-	int m = 1000;
+	int n = 3;
+	int m = 5;
 	int size = n * m;
 
 	while (true) {
 		thrust::device_vector<double> u(size, 0);
 		thrust::fill(u.begin(), u.begin() + n, 2.0);
-		thrust::fill(u.begin() + n * (n - 1), u.end(), 1.0);
+		thrust::fill(u.begin() + n * (m - 1), u.end(), 1.0);
 		//thrust::sequence(u.begin(), u.end());
 
 		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, ConvergenceCriteria);
 
-		ConvergenceCriteria cc(0.0, 200);
+		ConvergenceCriteria cc(0.0, 10000);
 
 
 		switch (getAlg())

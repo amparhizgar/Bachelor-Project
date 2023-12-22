@@ -90,10 +90,9 @@ double getError(thrust::device_vector<double>& vec) {
 extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
 {
 	int size = n * m;
-	double tol = 1e-5;
 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 gridDim((n - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
+	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
 
 	int iterations = 0;
 	thrust::device_vector<double> Ap(size);

@@ -49,7 +49,7 @@ extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<doub
 	thrust::device_vector<double> un(u);
 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 gridDim((n - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
+	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
 
 	double error;
 	int iterations = 0;
