@@ -14,13 +14,13 @@
 #include "util.h"
 
 
-__global__ void jacubiKernel(double* u, double* un, int n) {
+__global__ void jacubiKernel(double* u, double* un, int n, int m) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 
 	int index = i * n + j;
 
-	if (i > 0 && i < n - 1 && j > 0 && j < n - 1) {
+	if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
 		un[index] = 0.25 * (u[(i - 1) * n + j] + u[(i + 1) * n + j]
 			+ u[i * n + (j - 1)] + u[i * n + (j + 1)]);
 	}
@@ -33,13 +33,13 @@ extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, i
 	thrust::device_vector<double> un(u);
 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 gridDim((n - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
+	dim3 gridDim((n - 1) / blockDim.x + 1, (m - 1) / blockDim.y + 1);
 
 	int iterations = 0;
 	while (true) {
 		iterations++;
 
-		jacubiKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n);
+		jacubiKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m);
 
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), un.end()));
