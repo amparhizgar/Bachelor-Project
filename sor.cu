@@ -43,13 +43,21 @@ __global__ static void blackKernel(double* u, double* un, int n, int m, double l
 	}
 }
 
+__global__ static void errorKernel(double* u, double* un, double* error, int size) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < size) {
+		error[i] = fabs(u[i] - un[i]);
+	}
+}
 
 extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
 {
 	int size = n * n;
 	thrust::device_vector<double> un(u);
+	thrust::device_vector<double> error_temp(size);
+
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 gridDim((n - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
+	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
 
 	double lambda = 2 / (1 + sqrt(1 - pow(cos(pi / (n - 1)), 2)));
 
@@ -60,9 +68,9 @@ extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int 
 		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, lambda);
 		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, lambda);
 
-		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));
-		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), un.end()));
-		error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
+		errorKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()),
+			thrust::raw_pointer_cast(error_temp.data()), size);
+		error = thrust::reduce(error_temp.begin(), error_temp.end(), 0.0, thrust::maximum<double>());
 		swap(u, un);
 		if (cc.hasConverged(error, iterations))
 			break;

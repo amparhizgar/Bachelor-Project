@@ -79,6 +79,12 @@ __global__ static void joinKernel(double* red, double* black, double* u, int n, 
 		}
 	}
 }
+__global__ static void errorKernel(double* r, double* rnew, double* b, double* bnew, double* error, int sizer) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	if (i < sizer) {
+		error[i] = fmax(fabs(r[i] - rnew[i]), fabs(b[i] - bnew[i]));
+	}
+}
 
 struct Concatenator {
 	const double* vector1;
@@ -114,6 +120,7 @@ extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double
 
 	thrust::device_vector<double> bnew(b);
 	thrust::device_vector<double> rnew(r);
+	thrust::device_vector<double> error_temp(halfn * m);
 
 
 	double lambda = 2 / (1 + sqrt(1 - pow(cos(pi / (n - 1)), 2)));
@@ -128,18 +135,9 @@ extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double
 		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(rnew.data()), thrust::raw_pointer_cast(r.data()), thrust::raw_pointer_cast(b.data()), n, m, lambda);
 		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(bnew.data()), thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(rnew.data()), n, m, lambda);
 
-		/*double b_error = calculate_error(b, bnew, stream1);
-		double r_error = calculate_error(r, rnew, stream2);
-		cudaStreamSynchronize(stream1);
-		cudaStreamSynchronize(stream2);*/
-
-		size_t total_size = r.size() + b.size();
-		thrust::counting_iterator<int> index_iterator(0);
-		thrust::counting_iterator<int> index_iteratorend(total_size);
-		auto olddata = thrust::make_transform_iterator(index_iterator, Concatenator(r.data().get(), b.data().get(), r.size(), b.size()));
-		auto newdata = thrust::make_transform_iterator(index_iterator, Concatenator(rnew.data().get(), bnew.data().get(), rnew.size(), bnew.size()));
-		auto begin = thrust::make_zip_iterator(thrust::make_tuple(olddata, newdata));
-		error = thrust::transform_reduce(begin, begin + total_size, abs_difference(), 0.0, thrust::maximum<double>());
+		errorKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(r.data()), thrust::raw_pointer_cast(rnew.data()),
+			thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(bnew.data()), thrust::raw_pointer_cast(error_temp.data()), halfn * m);
+		error = thrust::reduce(error_temp.begin(), error_temp.end(), 0.0, thrust::maximum<double>());
 		swap(r, rnew);
 		swap(b, bnew);
 		if (cc.hasConverged(error, iterations))
