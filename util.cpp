@@ -11,6 +11,7 @@ void print2DArray(const double* array, int n, int m) {
 		}
 		std::cout << std::endl;
 	}
+	std::cout << std::endl;
 }
 
 

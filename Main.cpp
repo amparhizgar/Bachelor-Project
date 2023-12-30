@@ -42,18 +42,25 @@ int main() {
 	int m = 5000;
 	int size = n * m;
 
-	while (true) {
+	int mode = 1;
+
+	do {
 		thrust::device_vector<double> u(size, 0);
 		thrust::fill(u.begin(), u.begin() + n, 2.0);
-		thrust::fill(u.begin() + n * (m - 1), u.end(), 1.0);
+		thrust::fill(u.begin() + n * (m - 1), u.end(), 2.0);
 		//thrust::sequence(u.begin(), u.end());
 
 		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, ConvergenceCriteria);
 
-		ConvergenceCriteria cc(0.0, 500);
+		ConvergenceCriteria cc(0.0, 1);
 
+		int selectedAlg;
+		if (mode == 0)
+			selectedAlg = getAlg();
+		else
+			selectedAlg = mode;
 
-		switch (getAlg())
+		switch(selectedAlg)
 		{
 		case 1:
 			algorithm = &jacubi;
@@ -95,6 +102,6 @@ int main() {
 			thrust::host_vector<double> host_result(result);
 			print2DArray(thrust::raw_pointer_cast(host_result.data()), n, m);
 		}
-	}
+	} while (mode == 0);
 	return 0;
 }

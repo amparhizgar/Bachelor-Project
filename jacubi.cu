@@ -17,7 +17,6 @@
 __global__ void jacubiKernel(double* u, double* un, int n, int m) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
-
 	int index = i * n + j;
 
 	if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
@@ -29,7 +28,6 @@ __global__ void jacubiKernel(double* u, double* un, int n, int m) {
 
 extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
 {
-	int size = n * m;
 	thrust::device_vector<double> un(u);
 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
@@ -43,7 +41,6 @@ extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, i
 
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), un.end()));
-		
 		double error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
 		swap(u, un);
 		if (cc.hasConverged(error, iterations))
