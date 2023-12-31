@@ -38,8 +38,8 @@ int getAlg() {
 }
 
 int main() {
-	int n = 5000;
-	int m = 5000;
+	int n = 5;
+	int m = 5;
 	int size = n * m;
 
 	int mode = 0;
@@ -52,7 +52,7 @@ int main() {
 
 		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, ConvergenceCriteria);
 
-		ConvergenceCriteria cc(0.0, 1);
+		ConvergenceCriteria cc(0.0, 5);
 
 		int selectedAlg;
 		if (mode == 0)
