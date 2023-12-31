@@ -57,7 +57,10 @@ extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<doub
 		iterations++;
 
 		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m);
+		checkForError();
+
 		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(un.data()), n, m);
+		checkForError();
 
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), un.end()));

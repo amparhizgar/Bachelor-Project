@@ -70,6 +70,8 @@ extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int 
 
 		errorKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()),
 			thrust::raw_pointer_cast(error_temp.data()), size);
+		checkForError();
+
 		error = thrust::reduce(error_temp.begin(), error_temp.end(), 0.0, thrust::maximum<double>());
 		swap(u, un);
 		if (cc.hasConverged(error, iterations))

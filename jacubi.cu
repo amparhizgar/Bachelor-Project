@@ -38,6 +38,7 @@ extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, i
 		iterations++;
 
 		jacubiKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m);
+		checkForError();
 
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), un.end()));

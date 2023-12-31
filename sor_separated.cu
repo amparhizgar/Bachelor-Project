@@ -137,6 +137,7 @@ extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double
 
 		errorKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(r.data()), thrust::raw_pointer_cast(rnew.data()),
 			thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(bnew.data()), thrust::raw_pointer_cast(error_temp.data()), halfn * m);
+		checkForError();
 		error = thrust::reduce(error_temp.begin(), error_temp.end(), 0.0, thrust::maximum<double>());
 		swap(r, rnew);
 		swap(b, bnew);

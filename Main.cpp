@@ -42,7 +42,7 @@ int main() {
 	int m = 5000;
 	int size = n * m;
 
-	int mode = 1;
+	int mode = 0;
 
 	do {
 		thrust::device_vector<double> u(size, 0);
@@ -60,7 +60,7 @@ int main() {
 		else
 			selectedAlg = mode;
 
-		switch(selectedAlg)
+		switch (selectedAlg)
 		{
 		case 1:
 			algorithm = &jacubi;
@@ -102,6 +102,8 @@ int main() {
 			thrust::host_vector<double> host_result(result);
 			print2DArray(thrust::raw_pointer_cast(host_result.data()), n, m);
 		}
+
+		checkForError();
 	} while (mode == 0);
 	return 0;
 }

@@ -115,6 +115,7 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 
 		// Ap = A*p;
 		laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(p.data()), thrust::raw_pointer_cast(Ap.data()), n, m);
+		checkForError();
 
 		//alpha = rDot / (p'*Ap);
 		double alpha = rDot / dot(p, Ap);
