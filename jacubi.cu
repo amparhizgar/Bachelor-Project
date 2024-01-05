@@ -14,30 +14,36 @@
 #include "util.h"
 
 
-__global__ void jacubiKernel(double* u, double* un, int n, int m) {
+__device__ int d3i(int i, int j, int k, int n, int m, int p) {
+	return k * n * m + i * n + j;
+}
+
+__global__ void jacubiKernel(double* u, double* un, int n, int m, int p) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
-	int index = i * n + j;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int index = k * n * m + i * n + j;
 
-	if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
-		un[index] = 0.25 * (u[(i - 1) * n + j] + u[(i + 1) * n + j]
-			+ u[i * n + (j - 1)] + u[i * n + (j + 1)]);
+	if (i > 0 && i < m - 1 && j > 0 && j < n - 1 && k > 0 && k < p - 1) {
+		un[index] = 1.0 / 6.0 * (u[d3i(i - 1, j, k, n, m, p)] + u[d3i(i + 1, j, k, n, m, p)]
+			+ u[d3i(i, j - 1, k, n, m, p)] + u[d3i(i, j + 1, k, n, m, p)]
+			+ u[d3i(i, j, k - 1, n, m, p)] + u[d3i(i, j, k + 1, n, m, p)]);
 	}
 }
 
 
-extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
+extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	thrust::device_vector<double> un(u);
 
-	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
+	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1, (p - 1) / blockDim.z + 1);
 
 	int iterations = 0;
 	while (true) {
 		iterations++;
 
-		jacubiKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m);
+		jacubiKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, p);
 		checkForError();
 
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));

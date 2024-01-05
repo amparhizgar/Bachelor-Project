@@ -45,7 +45,6 @@ __global__ void blackKernel(double* un, int n, int m) {
 
 extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
 {
-	int size = n * m;
 	thrust::device_vector<double> un(u);
 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);

@@ -8,12 +8,13 @@
 #include <iostream>
 #include <cmath>
 
-#define BLOCK_SIZE 32
+#define BLOCK_SIZE 8
 
 const double pi = 3.141592653589793;
 
 void print2DArray(const double* array, int n, int m);
 void print2DArray(const double* array, int n);
+void writeToFile(const double* array, int n, int m, int p);
 
 struct abs_difference
 {

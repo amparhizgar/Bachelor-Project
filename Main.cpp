@@ -10,7 +10,7 @@
 #include <chrono>
 #include <iomanip>
 
-extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
+extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
@@ -37,23 +37,25 @@ int getAlg() {
 	}
 }
 
-int main() {
-	int n = 5;
-	int m = 5;
-	int size = n * m;
 
-	int mode = 0;
+int main() {
+	int n = 20;
+	int m = 10;
+	int p = 20;
+	int size = n * m * p;
+
+	int mode = 1;
+	bool plot = true;
 
 	do {
 		thrust::device_vector<double> u(size, 0);
-		thrust::fill(u.begin(), u.begin() + n, 2.0);
-		thrust::fill(u.begin() + n * (m - 1), u.end(), 2.0);
+		thrust::fill(u.begin(), u.begin() + n * m, -20);
+		thrust::fill(u.begin() + n * m * (p - 1), u.end(), 20);
 		//thrust::sequence(u.begin(), u.end());
 
+		ConvergenceCriteria cc(0.0, 100);
+
 		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, ConvergenceCriteria);
-
-		ConvergenceCriteria cc(0.0, 5);
-
 		int selectedAlg;
 		if (mode == 0)
 			selectedAlg = getAlg();
@@ -63,7 +65,7 @@ int main() {
 		switch (selectedAlg)
 		{
 		case 1:
-			algorithm = &jacubi;
+			//algorithm = &jacubi;
 			printAlgorithm("Jacubi");
 			break;
 		case 2:
@@ -88,7 +90,7 @@ int main() {
 
 		auto start = std::chrono::high_resolution_clock::now();
 
-		thrust::device_vector<double> result = *algorithm(u, n, m, cc);
+		thrust::device_vector<double> result = *jacubi(u, n, m, p, cc);
 
 		auto stop = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
@@ -98,11 +100,21 @@ int main() {
 			<< std::fixed << std::setprecision(3) << duration.count() / 1000.0 << " milliseconds"
 			<< std::endl;
 
+
+		thrust::host_vector<double> host_result(result);
+
 		if (n <= 20 && m <= 20) {
-			thrust::host_vector<double> host_result(result);
 			print2DArray(thrust::raw_pointer_cast(host_result.data()), n, m);
 		}
 
+		if (plot) {
+			writeToFile(thrust::raw_pointer_cast(host_result.data()), n, m, p);
+			std::string scriptPath = ".\\plot3d\\PlotFile.m";
+
+			std::string command = "matlab -batch \"run('" + std::string(scriptPath) + "');\"";
+			std::system(command.c_str());
+
+		}
 		checkForError();
 	} while (mode == 0);
 	return 0;
