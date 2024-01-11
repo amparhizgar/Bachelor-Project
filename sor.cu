@@ -13,32 +13,36 @@
 #include <thrust/iterator/zip_iterator.h>
 #include "util.h"
 
+__device__ static int indexof(int i, int j, int k, int n, int m, int p) {
+	return k * n * m + i * n + j;
+}
 
-
-__global__ static void redKernel(double* u, double* un, int n, int m, double lambda) {
+__global__ static void redKernel(double* u, double* un, int n, int m, int p, double lambda) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int index = k * n * m + i * n + j;
 
-	int index = i * n + j;
-
-	if ((i + j) % 2 == 0) {
-		if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
-			un[index] = (1 - lambda) * u[index] + lambda * 0.25 * (u[(i - 1) * n + j] + u[(i + 1) * n + j]
-				+ u[i * n + (j - 1)] + u[i * n + (j + 1)]);
+	if ((i + j + k) % 2 == 0) {
+		if (i > 0 && i < m - 1 && j > 0 && j < n - 1 && k > 0 && k < p - 1) {
+			un[index] = (1 - lambda) * u[index] + lambda / 6.0 * (u[indexof(i - 1, j, k, n, m, p)] + u[indexof(i + 1, j, k, n, m, p)]
+				+ u[indexof(i, j - 1, k, n, m, p)] + u[indexof(i, j + 1, k, n, m, p)]
+				+ u[indexof(i, j, k - 1, n, m, p)] + u[indexof(i, j, k + 1, n, m, p)]);
 		}
 	}
 }
 
-__global__ static void blackKernel(double* u, double* un, int n, int m, double lambda) {
+__global__ static void blackKernel(double* u, double* un, int n, int m, int p, double lambda) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int index = k * n * m + i * n + j;
 
-	int index = i * n + j;
-
-	if ((i + j) % 2 != 0) {
-		if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
-			un[index] = (1 - lambda) * u[index] + lambda * 0.25 * (un[(i - 1) * n + j] + un[(i + 1) * n + j]
-				+ un[i * n + (j - 1)] + un[i * n + (j + 1)]);
+	if ((i + j + k) % 2 != 0) {
+		if (i > 0 && i < m - 1 && j > 0 && j < n - 1 && k > 0 && k < p - 1) {
+			un[index] = (1 - lambda) * u[index] + lambda / 6.0 * (un[indexof(i - 1, j, k, n, m, p)] + un[indexof(i + 1, j, k, n, m, p)]
+				+ un[indexof(i, j - 1, k, n, m, p)] + un[indexof(i, j + 1, k, n, m, p)]
+				+ un[indexof(i, j, k - 1, n, m, p)] + un[indexof(i, j, k + 1, n, m, p)]);
 		}
 	}
 }
@@ -52,12 +56,12 @@ __global__ static void errorKernel(double* u, double* un, double* error, int siz
 
 extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
-	int size = n * n;
+	int size = n * m * p;
 	thrust::device_vector<double> un(u);
 	thrust::device_vector<double> error_temp(size);
 
-	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
+	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1, (p - 1) / blockDim.z + 1);
 
 	double lambda = 2 / (1 + sqrt(1 - pow(cos(pi / (n - 1)), 2)));
 
@@ -65,8 +69,8 @@ extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int 
 	int iterations = 0;
 	while (true) {
 		iterations++;
-		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, lambda);
-		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, lambda);
+		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, p, lambda);
+		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, p, lambda);
 
 		errorKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()),
 			thrust::raw_pointer_cast(error_temp.data()), size);
