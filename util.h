@@ -15,7 +15,7 @@ const double pi = 3.141592653589793;
 
 void print2DArray(const double* array, int n, int m);
 void print2DArray(const double* array, int n);
-void writeToFile(const double* array, int n, int m, int p);
+void writeToFile(const double* array, int n, int m, int p, std::string algname, int time, int iterations);
 
 struct abs_difference
 {

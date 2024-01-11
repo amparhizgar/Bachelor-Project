@@ -1,5 +1,5 @@
 
-function plot3D(X,Y,Z,Lx,Ly,Lz,dx,dy,dz,T,T_min,T_max,isovalues,iter, t);
+function plot3D(X,Y,Z,Lx,Ly,Lz,dx,dy,dz,T,T_min,T_max,isovalues,name, t, iter);
 clf
 
 numisosurf=25; % number of isosurfaces
@@ -38,6 +38,6 @@ axis manual
 %view(iter,20); % orbiting camera
 %view(180,0); %switch on to have static view
 view(3) % iso view
-title(['Steady State Solution, iter = ' num2str(iter), ' time = ' num2str(t) ,' s']);
+title(['Algorithm: ',name, ' , time = ' num2str(t) ,' msec']);
 drawnow
 

@@ -57,6 +57,7 @@ int main() {
 
 		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, int, ConvergenceCriteria);
 		int selectedAlg;
+		std::string algorithm_name;
 		if (mode == 0)
 			selectedAlg = getAlg();
 		else
@@ -66,27 +67,28 @@ int main() {
 		{
 		case 1:
 			algorithm = &jacubi;
-			printAlgorithm("Jacubi");
+			algorithm_name = "Jacubi";
 			break;
 		case 2:
 			algorithm = &jacubi_redblack;
-			printAlgorithm("Jacubi Red Black");
+			algorithm_name = "Jacubi Red Black";
 			break;
 		case 3:
 			algorithm = &sor;
-			printAlgorithm("SOR");
+			algorithm_name = "SOR";
 			break;
 		case 4:
 			algorithm = &sor_separated;
-			printAlgorithm("SOR Separated");
+			algorithm_name = "SOR Separated";
 			break;
 		case 5:
 			algorithm = &conjugate_gradient;
-			printAlgorithm("Conjugate Gradient");
+			algorithm_name = "Conjugate Gradient";
 			break;
 		default:
 			continue;
 		}
+		printAlgorithm(algorithm_name);
 
 		auto start = std::chrono::high_resolution_clock::now();
 
@@ -108,7 +110,7 @@ int main() {
 		}
 
 		if (plot) {
-			writeToFile(thrust::raw_pointer_cast(host_result.data()), n, m, p);
+			writeToFile(thrust::raw_pointer_cast(host_result.data()), n, m, p, algorithm_name, duration.count() / 1000, -1);
 			std::string scriptPath = ".\\plot3d\\PlotFile.m";
 
 			std::string command = "matlab -batch \"run('" + std::string(scriptPath) + "');\"";

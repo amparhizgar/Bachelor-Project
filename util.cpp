@@ -19,11 +19,11 @@ void print2DArray(const double* array, int n) {
 	print2DArray(array, n, n);
 }
 
-void writeToFile(const double* array, int n, int m, int p) {
+void writeToFile(const double* array, int n, int m, int p, std::string algname, int time, int iterations) {
 	std::ofstream dimFile(".\\plot3d\\dim.csv");
 	std::ofstream outputFile(".\\plot3d\\vector_data.csv");
 
-	dimFile << n << "," << m << "," << p << std::endl;
+	dimFile << n << "," << m << "," << p << "," << algname << "," << time << "," << iterations << std::endl;
 	dimFile.close();
 
 	std::stringstream rowString;
@@ -32,9 +32,6 @@ void writeToFile(const double* array, int n, int m, int p) {
 		for (int j = 0; j < m; ++j) {
 			for (int i = 0; i < n; ++i) {
 				int index = k * n * m + j * n + i;
-					/*if (index % 1000 == 0) {
-						
-					}*/
 				outputFile << array[index] << ",";
 			}
 		}
