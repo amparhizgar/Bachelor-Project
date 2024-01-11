@@ -14,27 +14,21 @@
 #include "util.h"
 
 
-__global__ static void laplacianKernel(double* u, double* unew, int n, int m) {
+__global__ static void laplacianKernel(double* u, double* unew, int n, int m, int p) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
 
-	if (i < m && j < n) {
-		int index = i * n + j;
-		if (i > 0 && i < n - 1 && j > 0 && j < n - 1) {
-			unew[index] = (u[(i - 1) * n + j] + u[(i + 1) * n + j]
-				+ u[i * n + (j - 1)] + u[i * n + (j + 1)]) - 4 * u[index];
+	if (i < m && j < n && k < p) {
+		int index = k * n * m + i * n + j;
+		if (i > 0 && i < m - 1 && j > 0 && j < n - 1 && k > 0 && k < p - 1) {
+			unew[index] = (
+				u[k * n * m + (i - 1) * n + j] + u[k * n * m + (i + 1) * n + j]
+				+ u[k * n * m + i * n + (j - 1)] + u[k * n * m + i * n + (j + 1)]
+				+ u[(k - 1) * n * m + i * n + j] + u[(k + 1) * n * m + i * n + j])
+				- 6 * u[index];
 		}
 	}
-}
-
-void print2DArray(thrust::device_vector<double>& v, int n, int m) {
-	for (int j = 0; j < m; ++j) {
-		for (int i = 0; i < n; ++i) {
-			std::cout << std::fixed << v[j * n + i] << "   ";
-		}
-		std::cout << std::endl;
-	}
-	printf("-----------\n");
 }
 
 double dot(thrust::device_vector<double>& v, thrust::device_vector<double>& u) {
@@ -89,10 +83,10 @@ double getError(thrust::device_vector<double>& vec) {
 
 extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
-	int size = n * m;
+	int size = n * m * p;
 
-	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
+	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1, (p - 1) / blockDim.z + 1);
 
 	int iterations = 0;
 	thrust::device_vector<double> Ap(size);
@@ -101,7 +95,7 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 	thrust::device_vector<double> b(size, 0);
 	thrust::device_vector<double> temp(size, 0);
 	// temp = A * x
-	laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(temp.data()), n, m);
+	laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(temp.data()), n, m, p);
 	// r = b - temp;
 	thrust::transform(b.begin(), b.end(), temp.begin(), r.begin(), thrust::minus<int>());
 	// p = r;
@@ -114,7 +108,7 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 		iterations++;
 
 		// Ap = A*p;
-		laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(p_array.data()), thrust::raw_pointer_cast(Ap.data()), n, m);
+		laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(p_array.data()), thrust::raw_pointer_cast(Ap.data()), n, m, p);
 		checkForError();
 
 		//alpha = rDot / (p'*Ap);
