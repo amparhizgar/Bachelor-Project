@@ -1,7 +1,8 @@
 clear; close all; clc;
 
 filename = 'vector_data.csv';
-info = readtable('dim.csv','Delimiter', ',', 'HeaderLines', 0);
+dimFileName = 'dim.csv';
+info = readtable(dimFileName,'Delimiter', ',', 'HeaderLines', 0);
 T = reshape(readmatrix(filename), info{1,1:3});
 T = permute(T, [2 3 1]);
 T = T(2:end-1,2:end-1, 2:end-1);
@@ -25,8 +26,6 @@ y=linspace(0,Ly,Ny);
 z=linspace(0,Lz,Nz);
 [X Y Z]= meshgrid(x,y,z);
 
-figure('units','pixels','position',[100 100 1280 720])
+p = figure('units','pixels','position',[100 100 1280 720]);
 plot3D(X,Y,Z,Lx,Ly,Lz,dx,dy,dz,T,T_min,T_max,isovalues,char(info{1,4}), info{1,5},info{1,6}); 
-
-drawnow;
-pause(10);
+uiwait(p)

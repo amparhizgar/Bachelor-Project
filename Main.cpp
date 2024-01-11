@@ -113,8 +113,10 @@ int main() {
 			writeToFile(thrust::raw_pointer_cast(host_result.data()), n, m, p, algorithm_name, duration.count() / 1000, -1);
 			std::string scriptPath = ".\\plot3d\\PlotFile.m";
 
-			std::string command = "matlab -batch \"run('" + std::string(scriptPath) + "');\"";
+			std::string command = "matlab -nosplash -nodesktop -r \"run('" + std::string(scriptPath) + "');quit();\"";
+
 			std::system(command.c_str());
+			//std::system(".\\plot3d\\plotter.exe");
 
 		}
 		checkForError();
