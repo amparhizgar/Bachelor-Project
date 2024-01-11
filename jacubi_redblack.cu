@@ -23,8 +23,8 @@ __global__ void redKernel(double* u, double* un, int n, int m, int p) {
 	int k = blockIdx.z * blockDim.z + threadIdx.z;
 	int index = k * n * m + i * n + j;
 
-	if ((i + j) % 2 == 0) {
-		if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
+	if ((i + j + k) % 2 == 0) {
+		if (i > 0 && i < m - 1 && j > 0 && j < n - 1 && k > 0 && k < p - 1) {
 			un[index] = 1.0 / 6.0 * (u[indexof(i - 1, j, k, n, m, p)] + u[indexof(i + 1, j, k, n, m, p)]
 				+ u[indexof(i, j - 1, k, n, m, p)] + u[indexof(i, j + 1, k, n, m, p)]
 				+ u[indexof(i, j, k - 1, n, m, p)] + u[indexof(i, j, k + 1, n, m, p)]);
@@ -37,8 +37,8 @@ __global__ void blackKernel(double* un, int n, int m, int p) {
 	int k = blockIdx.z * blockDim.z + threadIdx.z;
 	int index = k * n * m + i * n + j;
 
-	if ((i + j) % 2 != 0) {
-		if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
+	if ((i + j + k) % 2 != 0) {
+		if (i > 0 && i < m - 1 && j > 0 && j < n - 1 && k > 0 && k < p - 1) {
 			un[index] = 1.0 / 6.0 * (un[indexof(i - 1, j, k, n, m, p)] + un[indexof(i + 1, j, k, n, m, p)]
 				+ un[indexof(i, j - 1, k, n, m, p)] + un[indexof(i, j + 1, k, n, m, p)]
 				+ un[indexof(i, j, k - 1, n, m, p)] + un[indexof(i, j, k + 1, n, m, p)]);
@@ -52,8 +52,8 @@ extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<doub
 {
 	thrust::device_vector<double> un(u);
 
-	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1);
+	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1, (p - 1) / blockDim.z + 1);
 
 	double error;
 	int iterations = 0;
