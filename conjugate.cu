@@ -87,7 +87,7 @@ double getError(thrust::device_vector<double>& vec) {
 	return thrust::transform_reduce(vec.begin(), vec.end(), AbsoluteValue(), 0.0, thrust::maximum<double>());
 }
 
-extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
+extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	int size = n * m;
 
@@ -96,7 +96,7 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 
 	int iterations = 0;
 	thrust::device_vector<double> Ap(size);
-	thrust::device_vector<double> p(size);
+	thrust::device_vector<double> p_array(size);
 	thrust::device_vector<double> r(size);
 	thrust::device_vector<double> b(size, 0);
 	thrust::device_vector<double> temp(size, 0);
@@ -105,7 +105,7 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 	// r = b - temp;
 	thrust::transform(b.begin(), b.end(), temp.begin(), r.begin(), thrust::minus<int>());
 	// p = r;
-	thrust::copy(r.begin(), r.end(), p.begin());
+	thrust::copy(r.begin(), r.end(), p_array.begin());
 	// rDot = r'*r;
 	double rDot = dot(r);
 	double rDotNew;
@@ -114,13 +114,13 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 		iterations++;
 
 		// Ap = A*p;
-		laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(p.data()), thrust::raw_pointer_cast(Ap.data()), n, m);
+		laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(p_array.data()), thrust::raw_pointer_cast(Ap.data()), n, m);
 		checkForError();
 
 		//alpha = rDot / (p'*Ap);
-		double alpha = rDot / dot(p, Ap);
+		double alpha = rDot / dot(p_array, Ap);
 		//	x = x + alpha * p;
-		sumWithScalarProduct(u, alpha, p);
+		sumWithScalarProduct(u, alpha, p_array);
 		//r = r - alpha * Ap;
 		sumWithScalarProduct(r, -alpha, Ap);
 		if (cc.hasConverged(getError(r), iterations))
@@ -131,7 +131,7 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 		//	b = newRDot / rDot;
 		double beta = rDotNew / rDot;
 		//p = r + beta * p;
-		sumWithScalarProductRight(r, beta, p);
+		sumWithScalarProductRight(r, beta, p_array);
 
 		//rDot = newRDot;
 		rDot = rDotNew;

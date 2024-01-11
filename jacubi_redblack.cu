@@ -13,37 +13,42 @@
 #include <thrust/iterator/zip_iterator.h>
 #include "util.h"
 
+__device__ static int indexof(int i, int j, int k, int n, int m, int p) {
+	return k * n * m + i * n + j;
+}
 
-__global__ void redKernel(double* u, double* un, int n, int m) {
+__global__ void redKernel(double* u, double* un, int n, int m, int p) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-	int index = i * n + j;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int index = k * n * m + i * n + j;
 
 	if ((i + j) % 2 == 0) {
 		if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
-			un[index] = 0.25 * (u[(i - 1) * n + j] + u[(i + 1) * n + j]
-				+ u[i * n + (j - 1)] + u[i * n + (j + 1)]);
+			un[index] = 1.0 / 6.0 * (u[indexof(i - 1, j, k, n, m, p)] + u[indexof(i + 1, j, k, n, m, p)]
+				+ u[indexof(i, j - 1, k, n, m, p)] + u[indexof(i, j + 1, k, n, m, p)]
+				+ u[indexof(i, j, k - 1, n, m, p)] + u[indexof(i, j, k + 1, n, m, p)]);
 		}
 	}
 }
-__global__ void blackKernel(double* un, int n, int m) {
+__global__ void blackKernel(double* un, int n, int m, int p) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
-
-	int index = i * n + j;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int index = k * n * m + i * n + j;
 
 	if ((i + j) % 2 != 0) {
 		if (i > 0 && i < m - 1 && j > 0 && j < n - 1) {
-			un[index] = 0.25 * (un[(i - 1) * n + j] + un[(i + 1) * n + j]
-				+ un[i * n + (j - 1)] + un[i * n + (j + 1)]);
+			un[index] = 1.0 / 6.0 * (un[indexof(i - 1, j, k, n, m, p)] + un[indexof(i + 1, j, k, n, m, p)]
+				+ un[indexof(i, j - 1, k, n, m, p)] + un[indexof(i, j + 1, k, n, m, p)]
+				+ un[indexof(i, j, k - 1, n, m, p)] + un[indexof(i, j, k + 1, n, m, p)]);
 		}
 	}
 }
 
 
 
-extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
+extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	thrust::device_vector<double> un(u);
 
@@ -55,10 +60,10 @@ extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<doub
 	while (true) {
 		iterations++;
 
-		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m);
+		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, p);
 		checkForError();
 
-		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(un.data()), n, m);
+		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(un.data()), n, m, p);
 		checkForError();
 
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));

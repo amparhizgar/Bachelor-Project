@@ -1,4 +1,5 @@
-#pragma once
+#ifndef UTILsdfsdfhyfa_H
+#define UTILsdfsdfhyfa_H
 
 #include "cuda_runtime.h"
 #include <thrust/device_vector.h>
@@ -49,3 +50,6 @@ struct ConvergenceCriteria {
 
 void checkForError();
 
+
+
+#endif // UTILsdfsdfhyfa_H

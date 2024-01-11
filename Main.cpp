@@ -11,10 +11,10 @@
 #include <iomanip>
 
 extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
-extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
-extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
-extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
-extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc);
+extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
 
 void printAlgorithm(std::string name) {
 	printf("running %s\n", name.c_str());
@@ -44,7 +44,7 @@ int main() {
 	int p = 20;
 	int size = n * m * p;
 
-	int mode = 1;
+	int mode = 0;
 	bool plot = true;
 
 	do {
@@ -55,7 +55,7 @@ int main() {
 
 		ConvergenceCriteria cc(0.0, 100);
 
-		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, ConvergenceCriteria);
+		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, int, ConvergenceCriteria);
 		int selectedAlg;
 		if (mode == 0)
 			selectedAlg = getAlg();
@@ -65,7 +65,7 @@ int main() {
 		switch (selectedAlg)
 		{
 		case 1:
-			//algorithm = &jacubi;
+			algorithm = &jacubi;
 			printAlgorithm("Jacubi");
 			break;
 		case 2:
@@ -90,7 +90,7 @@ int main() {
 
 		auto start = std::chrono::high_resolution_clock::now();
 
-		thrust::device_vector<double> result = *jacubi(u, n, m, p, cc);
+		thrust::device_vector<double> result = *algorithm(u, n, m, p, cc);
 
 		auto stop = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);

@@ -105,7 +105,7 @@ struct Concatenator {
 	}
 };
 
-extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
+extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	const int halfn = (n - 1) / 2 + 1;
 

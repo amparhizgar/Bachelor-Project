@@ -13,8 +13,7 @@
 #include <thrust/iterator/zip_iterator.h>
 #include "util.h"
 
-
-__device__ int d3i(int i, int j, int k, int n, int m, int p) {
+__device__ static int indexof(int i, int j, int k, int n, int m, int p) {
 	return k * n * m + i * n + j;
 }
 
@@ -25,9 +24,9 @@ __global__ void jacubiKernel(double* u, double* un, int n, int m, int p) {
 	int index = k * n * m + i * n + j;
 
 	if (i > 0 && i < m - 1 && j > 0 && j < n - 1 && k > 0 && k < p - 1) {
-		un[index] = 1.0 / 6.0 * (u[d3i(i - 1, j, k, n, m, p)] + u[d3i(i + 1, j, k, n, m, p)]
-			+ u[d3i(i, j - 1, k, n, m, p)] + u[d3i(i, j + 1, k, n, m, p)]
-			+ u[d3i(i, j, k - 1, n, m, p)] + u[d3i(i, j, k + 1, n, m, p)]);
+		un[index] = 1.0 / 6.0 * (u[indexof(i - 1, j, k, n, m, p)] + u[indexof(i + 1, j, k, n, m, p)]
+			+ u[indexof(i, j - 1, k, n, m, p)] + u[indexof(i, j + 1, k, n, m, p)]
+			+ u[indexof(i, j, k - 1, n, m, p)] + u[indexof(i, j, k + 1, n, m, p)]);
 	}
 }
 

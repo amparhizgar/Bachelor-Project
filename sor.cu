@@ -50,7 +50,7 @@ __global__ static void errorKernel(double* u, double* un, double* error, int siz
 	}
 }
 
-extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, ConvergenceCriteria cc)
+extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	int size = n * n;
 	thrust::device_vector<double> un(u);
