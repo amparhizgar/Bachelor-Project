@@ -13,6 +13,7 @@
 extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern thrust::device_vector<double>* sor_half_thread(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
 extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
 
@@ -44,8 +45,8 @@ int main() {
 	int p = 200;
 	int size = n * m * p;
 
-	int mode = 3;
-	bool plot = true;
+	int mode = 0;
+	bool plot = false;
 
 	do {
 		thrust::device_vector<double> u(size, 0);
@@ -53,7 +54,7 @@ int main() {
 		thrust::fill(u.begin() + n * m * (p - 1), u.end(), 20);
 		//thrust::sequence(u.begin(), u.end());
 
-		ConvergenceCriteria cc(0.0, 100);
+		ConvergenceCriteria cc(0.0, 1000);
 
 		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, int, ConvergenceCriteria);
 		int selectedAlg;
@@ -78,10 +79,14 @@ int main() {
 			algorithm_name = "SOR";
 			break;
 		case 4:
+			algorithm = &sor_half_thread;
+			algorithm_name = "SOR hlaf thread";
+			break;
+		case 5:
 			algorithm = &sor_separated;
 			algorithm_name = "SOR Separated";
 			break;
-		case 5:
+		case 6:
 			algorithm = &conjugate_gradient;
 			algorithm_name = "Conjugate Gradient";
 			break;

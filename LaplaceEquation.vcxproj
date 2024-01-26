@@ -89,6 +89,7 @@
     <CudaCompile Include="jacubi_redblack.cu" />
     <CudaCompile Include="Main.cpp" />
     <CudaCompile Include="sor.cu" />
+    <CudaCompile Include="sor_hlaf_thread.cu" />
     <CudaCompile Include="sor_separated.cu" />
   </ItemGroup>
   <ItemGroup>
