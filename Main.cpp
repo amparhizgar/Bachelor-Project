@@ -39,12 +39,12 @@ int getAlg() {
 
 
 int main() {
-	int n = 20;
-	int m = 10;
-	int p = 20;
+	int n = 200;
+	int m = 100;
+	int p = 200;
 	int size = n * m * p;
 
-	int mode = 0;
+	int mode = 3;
 	bool plot = true;
 
 	do {
@@ -110,13 +110,13 @@ int main() {
 		}
 
 		if (plot) {
-			writeToFile(thrust::raw_pointer_cast(host_result.data()), n, m, p, algorithm_name, duration.count() / 1000, -1);
+			std::cout << "writing to file...\n";
+ 			writeToFile(thrust::raw_pointer_cast(host_result.data()), n, m, p, algorithm_name, duration.count() / 1000, -1);
 			std::string scriptPath = ".\\plot3d\\PlotFile.m";
 
 			std::string command = "matlab -nosplash -nodesktop -r \"run('" + std::string(scriptPath) + "');quit();\"";
-
+			std::cout << "opening matlab...\n";
 			std::system(command.c_str());
-			//std::system(".\\plot3d\\plotter.exe");
 
 		}
 		checkForError();

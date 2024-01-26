@@ -176,8 +176,8 @@ extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double
 	dim3 joinGridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1, (p - 1) / blockDim.z + 1);
 	joinKernel << <joinGridDim, blockDim >> > (thrust::raw_pointer_cast(r.data()), thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(u.data()), n, m, p);
 	cudaStreamDestroy(stream1);
-	cudaStreamDestroy(stream2);
-
+	cudaStreamDestroy(stream2);	
+	
 	return &u;
 }
 
