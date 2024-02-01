@@ -11,12 +11,12 @@
 #include <chrono>
 #include <iomanip>
 
-extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
-extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
-extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
-extern thrust::device_vector<double>* sor_half_thread(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
-extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
-extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern Result jacubi(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern Result jacubi_redblack(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern Result sor(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern Result sor_half_thread(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern Result sor_separated(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
+extern Result conjugate_gradient(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc);
 
 void printAlgorithm(std::string name) {
 	printf("running %s\n", name.c_str());
@@ -55,9 +55,9 @@ int main() {
 		thrust::fill(u.begin() + n * m * (p - 1), u.end(), 20);
 		//thrust::sequence(u.begin(), u.end());
 
-		ConvergenceCriteria cc(0.0, 1000);
+		ConvergenceCriteria cc(0.1, 0);
 
-		thrust::device_vector<double>* (*algorithm)(thrust::device_vector<double>&, int, int, int, ConvergenceCriteria);
+		Result (*algorithm)(thrust::device_vector<double>&, int, int, int, ConvergenceCriteria);
 		int selectedAlg;
 		std::string algorithm_name;
 		if (mode == 0)
@@ -98,7 +98,7 @@ int main() {
 
 		auto start = std::chrono::high_resolution_clock::now();
 
-		thrust::device_vector<double> result = *algorithm(u, n, m, p, cc);
+		Result result = algorithm(u, n, m, p, cc);
 
 		auto stop = std::chrono::high_resolution_clock::now();
 		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
@@ -106,10 +106,10 @@ int main() {
 		std::cout.imbue(std::locale(""));
 		std::cout << "Time taken by the algorithm: "
 			<< std::fixed << std::setprecision(3) << duration.count() / 1000.0 << " milliseconds"
-			<< std::endl;
+			<< " in " << result.iterations << " iterations. error = " << result.error << std::endl;
 
 
-		thrust::host_vector<double> host_result(result);
+		thrust::host_vector<double> host_result(*result.soloution);
 
 		if (n <= 20 && m <= 20) {
 			print2DArray(thrust::raw_pointer_cast(host_result.data()), n, m);

@@ -48,6 +48,14 @@ struct ConvergenceCriteria {
 	}
 };
 
+struct Result {
+	thrust::device_vector<double>* soloution;
+	const double error;
+	const long iterations;
+
+	Result(thrust::device_vector<double>* _soloution,double _error, long _iterations) : soloution(_soloution), error(_error), iterations(_iterations) {}
+};
+
 void checkForError();
 
 

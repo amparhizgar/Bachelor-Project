@@ -22,7 +22,7 @@ __global__ static void redKernel(double* u, double* un, int n, int m, int p, dou
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 	int k = (blockIdx.z * blockDim.z + threadIdx.z) * 2;
 
-	if (i + j % 2 == 1) {
+	if ((i + j) % 2 == 1) {
 		k++;
 	}
 
@@ -40,7 +40,7 @@ __global__ static void blackKernel(double* u, double* un, int n, int m, int p, d
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 	int k = (blockIdx.z * blockDim.z + threadIdx.z) * 2;
 	
-	if (i + j % 2 == 0) {
+	if ((i + j) % 2 == 0) {
 		k++;
 	}
 	
@@ -55,14 +55,16 @@ __global__ static void blackKernel(double* u, double* un, int n, int m, int p, d
 	}
 }
 
-__global__ static void errorKernel(double* u, double* un, double* error, int size) {
+__global__ static void errorKernel(double* u, double* un, double* error, int size, int n, int m) {
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	if (i < size) {
-		error[i] = fabs(u[i] - un[i]);
-	}
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int index = k * n * m + i * n + j;
+	if (index < size)
+		error[index] = fabs(u[index] - un[index]);
 }
 
-extern thrust::device_vector<double>* sor_half_thread(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
+extern Result sor_half_thread(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	int size = n * m * p;
 	thrust::device_vector<double> un(u);
@@ -82,7 +84,7 @@ extern thrust::device_vector<double>* sor_half_thread(thrust::device_vector<doub
 		blackKernel << <gridDimHalf, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, p, lambda);
 
 		errorKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()),
-			thrust::raw_pointer_cast(error_temp.data()), size);
+			thrust::raw_pointer_cast(error_temp.data()), size, n, m);
 		checkForError();
 
 		error = thrust::reduce(error_temp.begin(), error_temp.end(), 0.0, thrust::maximum<double>());
@@ -91,6 +93,6 @@ extern thrust::device_vector<double>* sor_half_thread(thrust::device_vector<doub
 			break;
 	}
 
-	return &u;
+	return Result(&u, error, iterations);
 }
 

@@ -31,7 +31,7 @@ __global__ void jacubiKernel(double* u, double* un, int n, int m, int p) {
 }
 
 
-extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
+extern Result jacubi(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	thrust::device_vector<double> un(u);
 
@@ -39,6 +39,7 @@ extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, i
 	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1, (p - 1) / blockDim.z + 1);
 
 	int iterations = 0;
+	double error;
 	while (true) {
 		iterations++;
 
@@ -47,11 +48,11 @@ extern thrust::device_vector<double>* jacubi(thrust::device_vector<double>& u, i
 
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), un.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), un.end()));
-		double error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
+		error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
 		swap(u, un);
 		if (cc.hasConverged(error, iterations))
 			break;
 	}
-	return &u;
+	return Result(&u, error, iterations);
 }
 

@@ -105,12 +105,13 @@ __global__ static void joinKernel(double* red, double* black, double* u, int n, 
 		}
 	}
 }
-__global__ static void errorKernel(double* r, double* rnew, double* b, double* bnew, double* error, int sizer) {
-	int i = blockIdx.z * blockDim.y * blockDim.x + 
-		blockIdx.y * blockDim.x +
-		threadIdx.x;
-	if (i < sizer) {
-		error[i] = fmax(fabs(r[i] - rnew[i]), fabs(b[i] - bnew[i]));
+__global__ static void errorKernel(double* r, double* rnew, double* b, double* bnew, double* error, int sizer, int n, int m) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	int k = blockIdx.z * blockDim.z + threadIdx.z;
+	int index = k * n * m + i * n + j;
+	if (index < sizer) {
+		error[index] = fmax(fabs(r[index] - rnew[index]), fabs(b[index] - bnew[index]));
 	}
 }
 
@@ -133,7 +134,7 @@ struct Concatenator {
 	}
 };
 
-extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
+extern Result sor_separated(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	const int halfn = (n - 1) / 2 + 1;
 
@@ -164,7 +165,7 @@ extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double
 		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(bnew.data()), thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(rnew.data()), n, m, p, lambda);
 
 		errorKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(r.data()), thrust::raw_pointer_cast(rnew.data()),
-			thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(bnew.data()), thrust::raw_pointer_cast(error_temp.data()), halfn * m * p);
+			thrust::raw_pointer_cast(b.data()), thrust::raw_pointer_cast(bnew.data()), thrust::raw_pointer_cast(error_temp.data()), halfn * m * p, n, m);
 		checkForError();
 		error = thrust::reduce(error_temp.begin(), error_temp.end(), 0.0, thrust::maximum<double>());
 		swap(r, rnew);
@@ -178,6 +179,6 @@ extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double
 	cudaStreamDestroy(stream1);
 	cudaStreamDestroy(stream2);	
 	
-	return &u;
+	return Result(&u, error, iterations);
 }
 

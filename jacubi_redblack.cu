@@ -48,7 +48,7 @@ __global__ void blackKernel(double* un, int n, int m, int p) {
 
 
 
-extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
+extern Result jacubi_redblack(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	thrust::device_vector<double> un(u);
 
@@ -74,6 +74,6 @@ extern thrust::device_vector<double>* jacubi_redblack(thrust::device_vector<doub
 		if (cc.hasConverged(error, iterations))
 			break;
 	}
-	return &u;
+	return Result(&u, error, iterations);
 }
 

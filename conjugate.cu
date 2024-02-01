@@ -81,7 +81,7 @@ double getError(thrust::device_vector<double>& vec) {
 	return thrust::transform_reduce(vec.begin(), vec.end(), AbsoluteValue(), 0.0, thrust::maximum<double>());
 }
 
-extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
+extern Result conjugate_gradient(thrust::device_vector<double>& u, int n, int m, int p, ConvergenceCriteria cc)
 {
 	int size = n * m * p;
 
@@ -89,6 +89,7 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1, (p - 1) / blockDim.z + 1);
 
 	int iterations = 0;
+	double error;
 	thrust::device_vector<double> Ap(size);
 	thrust::device_vector<double> p_array(size);
 	thrust::device_vector<double> r(size);
@@ -117,7 +118,8 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 		sumWithScalarProduct(u, alpha, p_array);
 		//r = r - alpha * Ap;
 		sumWithScalarProduct(r, -alpha, Ap);
-		if (cc.hasConverged(getError(r), iterations))
+		error = getError(r);
+		if (cc.hasConverged(error, iterations))
 			break;
 		//	newRDot = r'*r;
 		rDotNew = dot(r);
@@ -130,6 +132,7 @@ extern thrust::device_vector<double>* conjugate_gradient(thrust::device_vector<d
 		//rDot = newRDot;
 		rDot = rDotNew;
 	}
-	return &u;
+
+	return Result(&u, error, iterations);
 }
 
