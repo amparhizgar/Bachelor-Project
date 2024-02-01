@@ -90,6 +90,7 @@ extern Result conjugate_gradient(thrust::device_vector<double>& u, int n, int m,
 
 	int iterations = 0;
 	double error;
+	thrust::device_vector<double> uold(size);
 	thrust::device_vector<double> Ap(size);
 	thrust::device_vector<double> p_array(size);
 	thrust::device_vector<double> r(size);
@@ -108,6 +109,8 @@ extern Result conjugate_gradient(thrust::device_vector<double>& u, int n, int m,
 	while (true) {
 		iterations++;
 
+		thrust::copy(u.begin(), u.end(), uold.begin());
+
 		// Ap = A*p;
 		laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(p_array.data()), thrust::raw_pointer_cast(Ap.data()), n, m, p);
 		checkForError();
@@ -118,12 +121,17 @@ extern Result conjugate_gradient(thrust::device_vector<double>& u, int n, int m,
 		sumWithScalarProduct(u, alpha, p_array);
 		//r = r - alpha * Ap;
 		sumWithScalarProduct(r, -alpha, Ap);
-		error = getError(r);
-		if (cc.hasConverged(error, iterations))
-			break;
+
 		//	newRDot = r'*r;
 		rDotNew = dot(r);
 
+		//error = error = getError(r);
+		//error = rDotNew;
+		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), uold.begin()));
+		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), uold.end()));
+		error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
+		if (cc.hasConverged(error, iterations))
+			break;
 		//	b = newRDot / rDot;
 		double beta = rDotNew / rDot;
 		//p = r + beta * p;

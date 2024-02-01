@@ -55,7 +55,7 @@ int main() {
 		thrust::fill(u.begin() + n * m * (p - 1), u.end(), 20);
 		//thrust::sequence(u.begin(), u.end());
 
-		ConvergenceCriteria cc(0.1, 0);
+		ConvergenceCriteria cc(0.0001, 0);
 
 		Result (*algorithm)(thrust::device_vector<double>&, int, int, int, ConvergenceCriteria);
 		int selectedAlg;
@@ -104,9 +104,10 @@ int main() {
 		auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
 		std::cout.imbue(std::locale(""));
-		std::cout << "Time taken by the algorithm: "
-			<< std::fixed << std::setprecision(3) << duration.count() / 1000.0 << " milliseconds"
-			<< " in " << result.iterations << " iterations. error = " << result.error << std::endl;
+	
+		std::cout << "Time = "
+			<< std::fixed << std::setprecision(3) << duration.count() / 1000.0 << " milliseconds " ;
+		printf("iterations = %d error = %f\n", result.iterations, result.error);
 
 
 		thrust::host_vector<double> host_result(*result.soloution);
