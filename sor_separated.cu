@@ -151,7 +151,7 @@ extern thrust::device_vector<double>* sor_separated(thrust::device_vector<double
 	thrust::device_vector<double> error_temp(halfn * m * p);
 
 
-	double lambda = 2 / (1 + sqrt(1 - pow(cos(pi / (n - 1)), 2)));
+	double lambda = 2 / (1 + sin(pi / (n + 1)));
 	cudaStream_t stream1, stream2;
 	cudaStreamCreate(&stream1);
 	cudaStreamCreate(&stream2);

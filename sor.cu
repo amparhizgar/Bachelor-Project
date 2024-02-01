@@ -63,7 +63,7 @@ extern thrust::device_vector<double>* sor(thrust::device_vector<double>& u, int 
 	dim3 blockDim(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 	dim3 gridDim((m - 1) / blockDim.x + 1, (n - 1) / blockDim.y + 1, (p - 1) / blockDim.z + 1);
 
-	double lambda = 2 / (1 + sqrt(1 - pow(cos(pi / (n - 1)), 2)));
+	double lambda = 2 / (1 + sin(pi / (n + 1)));
 
 	double error;
 	int iterations = 0;
