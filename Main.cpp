@@ -41,21 +41,21 @@ int getAlg() {
 
 
 int main() {
-	int n = 200;
-	int m = 100;
-	int p = 200;
+	int d = 256;
+	int n = d;
+	int m = d;
+	int p = d;
 	int size = n * m * p;
 
-	int mode = 0;
+	int mode = 6;
 	bool plot = false;
+	ConvergenceCriteria cc(0.0, 1); // error, iterations
 
 	do {
 		thrust::device_vector<double> u(size, 0);
 		thrust::fill(u.begin(), u.begin() + n * m, -20);
 		thrust::fill(u.begin() + n * m * (p - 1), u.end(), 20);
 		//thrust::sequence(u.begin(), u.end());
-
-		ConvergenceCriteria cc(0.0001, 0);
 
 		Result (*algorithm)(thrust::device_vector<double>&, int, int, int, ConvergenceCriteria);
 		int selectedAlg;

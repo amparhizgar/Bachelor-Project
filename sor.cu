@@ -47,11 +47,8 @@ __global__ static void blackKernel(double* u, double* un, int n, int m, int p, d
 	}
 }
 
-__global__ static void errorKernel(double* u, double* un, double* error, int size, int n, int m) {
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	int j = blockIdx.y * blockDim.y + threadIdx.y;
-	int k = blockIdx.z * blockDim.z + threadIdx.z;
-	int index = k * n * m + i * n + j;
+__global__ static void errorKernel(double* u, double* un, double* error, int size) {
+	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	if (index < size)
 		error[index] = fabs(u[index] - un[index]);
 }
@@ -74,8 +71,8 @@ extern Result sor(thrust::device_vector<double>& u, int n, int m, int p, Converg
 		redKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, p, lambda);
 		blackKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()), n, m, p, lambda);
 
-		errorKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()),
-			thrust::raw_pointer_cast(error_temp.data()), size, n, m);
+		errorKernel << <(size - 1) / 128 + 1, 128 >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(un.data()),
+			thrust::raw_pointer_cast(error_temp.data()), size);
 		checkForError();
 		error = thrust::reduce(error_temp.begin(), error_temp.end(), 0.0, thrust::maximum<double>());
 		swap(u, un);

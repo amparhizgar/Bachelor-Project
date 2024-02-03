@@ -13,7 +13,7 @@
 #include <thrust/iterator/zip_iterator.h>
 #include "util.h"
 
-__device__ static int indexof(int i, int j, int k, int n, int m, int p) {
+__device__ __inline__ static int indexof(int i, int j, int k, int n, int m, int p) {
 	return k * n * m + i * n + j;
 }
 

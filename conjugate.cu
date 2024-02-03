@@ -19,15 +19,13 @@ __global__ static void laplacianKernel(double* u, double* unew, int n, int m, in
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 	int k = blockIdx.z * blockDim.z + threadIdx.z;
 
-	if (i < m && j < n && k < p) {
-		int index = k * n * m + i * n + j;
-		if (i > 0 && i < m - 1 && j > 0 && j < n - 1 && k > 0 && k < p - 1) {
-			unew[index] = (
-				u[k * n * m + (i - 1) * n + j] + u[k * n * m + (i + 1) * n + j]
-				+ u[k * n * m + i * n + (j - 1)] + u[k * n * m + i * n + (j + 1)]
-				+ u[(k - 1) * n * m + i * n + j] + u[(k + 1) * n * m + i * n + j])
-				- 6 * u[index];
-		}
+	int index = k * n * m + i * n + j;
+	if (i > 0 && i < m - 1 && j > 0 && j < n - 1 && k > 0 && k < p - 1) {
+		unew[index] = (
+			u[k * n * m + (i - 1) * n + j] + u[k * n * m + (i + 1) * n + j]
+			+ u[k * n * m + i * n + (j - 1)] + u[k * n * m + i * n + (j + 1)]
+			+ u[(k - 1) * n * m + i * n + j] + u[(k + 1) * n * m + i * n + j])
+			- 6 * u[index];
 	}
 }
 
@@ -90,16 +88,19 @@ extern Result conjugate_gradient(thrust::device_vector<double>& u, int n, int m,
 
 	int iterations = 0;
 	double error;
-	thrust::device_vector<double> uold(size);
-	thrust::device_vector<double> Ap(size);
-	thrust::device_vector<double> p_array(size);
 	thrust::device_vector<double> r(size);
-	thrust::device_vector<double> b(size, 0);
-	thrust::device_vector<double> temp(size, 0);
-	// temp = A * x
-	laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(temp.data()), n, m, p);
-	// r = b - temp;
-	thrust::transform(b.begin(), b.end(), temp.begin(), r.begin(), thrust::minus<int>());
+	{
+		thrust::device_vector<double> b(size, 0);
+		thrust::device_vector<double> temp(size, 0);
+		// temp = A * x
+		laplacianKernel << <gridDim, blockDim >> > (thrust::raw_pointer_cast(u.data()), thrust::raw_pointer_cast(temp.data()), n, m, p);
+		// r = b - temp;
+		thrust::transform(b.begin(), b.end(), temp.begin(), r.begin(), thrust::minus<int>());
+	}
+	thrust::device_vector<double> p_array(size);
+	thrust::device_vector<double> Ap(size);
+	thrust::device_vector<double> uold(size);
+
 	// p = r;
 	thrust::copy(r.begin(), r.end(), p_array.begin());
 	// rDot = r'*r;
@@ -125,13 +126,12 @@ extern Result conjugate_gradient(thrust::device_vector<double>& u, int n, int m,
 		//	newRDot = r'*r;
 		rDotNew = dot(r);
 
-		//error = error = getError(r);
-		//error = rDotNew;
 		auto begin = thrust::make_zip_iterator(thrust::make_tuple(u.begin(), uold.begin()));
 		auto end = thrust::make_zip_iterator(thrust::make_tuple(u.end(), uold.end()));
 		error = thrust::transform_reduce(begin, end, abs_difference(), 0.0, thrust::maximum<double>());
-		if (cc.hasConverged(error, iterations))
-			break;
+		//error = error = getError(r);
+		//error = rDotNew;
+
 		//	b = newRDot / rDot;
 		double beta = rDotNew / rDot;
 		//p = r + beta * p;
@@ -139,6 +139,9 @@ extern Result conjugate_gradient(thrust::device_vector<double>& u, int n, int m,
 
 		//rDot = newRDot;
 		rDot = rDotNew;
+
+		if (cc.hasConverged(error, iterations))
+			break;
 	}
 
 	return Result(&u, error, iterations);
