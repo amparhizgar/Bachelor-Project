@@ -9,7 +9,7 @@
 #include <iostream>
 #include <cmath>
 
-#define BLOCK_SIZE 8
+#define BLOCK_SIZE 4
 
 const double pi = 3.141592653589793;
 
